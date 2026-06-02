@@ -1,0 +1,59 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# Node
+node_modules/
+dist/
+build/
+
+# React / Vite
+.vite/
+.cache/
+
+# Env & secrets
+.env
+.env.local
+.env.production
+appsettings.Production.json
+
+# .NET build output
+bin/
+obj/
+publish/
+
+# SQLite database files (never commit the DB)
+*.db
+*.db-shm
+*.db-wal
+
+# Next.js build output
+.next/
+out/
+
+# Logs
+logs/
+*.log
+
+# Generated backups / archives
+Backups/
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+*.bak
+
+# SSH keys (don't commit private or public keys)
+git-erp
+git-erp.pub
+*.pem
+*.key
+*.pub
+
+# OS
+.DS_Store
+Thumbs.db

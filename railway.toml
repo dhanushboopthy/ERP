@@ -1,0 +1,15 @@
+# Railway deployment config for Sudhan Textile ERP Backend
+# Docs: https://docs.railway.app/reference/config-as-code
+
+[build]
+# Path to Dockerfile, relative to repo root
+dockerfilePath = "backend/SudhanTextileERP.API/Dockerfile"
+# Docker build context = the backend project folder
+dockerContextPath = "backend/SudhanTextileERP.API"
+
+[deploy]
+# Health check endpoint (the API has a /api/health or swagger)
+healthcheckPath = "/api/health"
+healthcheckTimeout = 30
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

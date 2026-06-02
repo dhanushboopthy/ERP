@@ -1,0 +1,861 @@
+using Microsoft.EntityFrameworkCore;
+using SudhanTextileERP.API.Data;
+using SudhanTextileERP.API.DTOs;
+using SudhanTextileERP.API.Entities;
+
+namespace SudhanTextileERP.API.Services;
+
+public interface ISampleDataLoader
+{
+    Task<SampleDataLoadResult> LoadDemoDataAsync();
+    Task<bool> ClearDemoDataAsync();
+    Task<bool> IsDemoDataLoadedAsync();
+}
+
+public class SampleDataLoadResult
+{
+    public bool Success { get; set; }
+    public string Message { get; set; } = string.Empty;
+    public Dictionary<string, int> LoadedCounts { get; set; } = new();
+    public List<string> Errors { get; set; } = new();
+}
+
+public class SampleDataLoader : ISampleDataLoader
+{
+    private readonly ApplicationDbContext _context;
+    private readonly IYarnReceiptService _yarnReceiptService;
+    private readonly IBabyConeService _babyConeService;
+    private readonly IWarpingJobCardService _warpingService;
+    private readonly ISizingJobCardService _sizingService;
+    private readonly IYarnReturnService _yarnReturnService;
+    private readonly IYarnDeliveryService _yarnDeliveryService;
+    private readonly IInvoiceService _invoiceService;
+    private readonly IAuthService _authService;
+    private readonly IWebHostEnvironment _environment;
+    private readonly ILogger<SampleDataLoader> _logger;
+    private const string DEMO_USER = "SYSTEM_DEMO";
+
+    public SampleDataLoader(
+        ApplicationDbContext context,
+        IYarnReceiptService yarnReceiptService,
+        IBabyConeService babyConeService,
+        IWarpingJobCardService warpingService,
+        ISizingJobCardService sizingService,
+        IYarnReturnService yarnReturnService,
+        IYarnDeliveryService yarnDeliveryService,
+        IInvoiceService invoiceService,
+        IAuthService authService,
+        IWebHostEnvironment environment,
+        ILogger<SampleDataLoader> logger)
+    {
+        _context = context;
+        _yarnReceiptService = yarnReceiptService;
+        _babyConeService = babyConeService;
+        _warpingService = warpingService;
+        _sizingService = sizingService;
+        _yarnReturnService = yarnReturnService;
+        _yarnDeliveryService = yarnDeliveryService;
+        _invoiceService = invoiceService;
+        _authService = authService;
+        _environment = environment;
+        _logger = logger;
+    }
+
+    public async Task<bool> IsDemoDataLoadedAsync()
+    {
+        return await _context.Parties.AnyAsync(p => p.CreatedBy == DEMO_USER);
+    }
+
+    public async Task<SampleDataLoadResult> LoadDemoDataAsync()
+    {
+        var result = new SampleDataLoadResult();
+
+        // SAFETY CHECK: Only allow in Development or Demo environments
+        if (!_environment.IsDevelopment() && 
+            !_environment.EnvironmentName.Equals("Demo", StringComparison.OrdinalIgnoreCase))
+        {
+            result.Success = false;
+            result.Message = "Sample data can only be loaded in Development or Demo environments";
+            return result;
+        }
+
+        // Check if already loaded
+        if (await IsDemoDataLoadedAsync())
+        {
+            result.Success = false;
+            result.Message = "Demo data already loaded. Clear existing demo data first.";
+            return result;
+        }
+
+        try
+        {
+            _logger.LogInformation("Starting sample data load...");
+
+            // STEP 1: Master Data
+            await LoadCompanyMasterAsync(result);
+            await LoadYarnCountMasterAsync(result);
+            await LoadLoomTypeMasterAsync(result);
+            await LoadPartiesMasterAsync(result);
+            await LoadVehicleMasterAsync(result);
+            await LoadBeamMasterAsync(result);
+            await LoadFinancialYearAsync(result);
+
+            // STEP 2: Demo Users
+            await LoadDemoUsersAsync(result);
+
+            // STEP 3: Transactional Data (using services)
+            await LoadYarnReceiptsAsync(result);
+            await LoadBabyConesAsync(result);
+            await LoadWarpingJobCardsAsync(result);
+            await LoadSizingJobCardsAsync(result);
+            await LoadYarnReturnsAsync(result);
+            await LoadYarnDeliveriesAsync(result);
+            await LoadInvoicesAsync(result);
+
+            result.Success = true;
+            result.Message = $"Demo data loaded successfully. Total records: {result.LoadedCounts.Values.Sum()}";
+            
+            _logger.LogInformation(result.Message);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading sample data");
+            result.Success = false;
+            result.Message = $"Error: {ex.Message}";
+            result.Errors.Add(ex.ToString());
+            return result;
+        }
+    }
+
+    public async Task<bool> ClearDemoDataAsync()
+    {
+        // SAFETY CHECK
+        if (!_environment.IsDevelopment() && 
+            !_environment.EnvironmentName.Equals("Demo", StringComparison.OrdinalIgnoreCase))
+        {
+            _logger.LogWarning("Attempted to clear demo data in non-dev environment");
+            return false;
+        }
+
+        try
+        {
+            _logger.LogInformation("Clearing demo data...");
+
+            // Delete in reverse order to respect FK constraints
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM TaxInvoiceDetails WHERE CreatedBy = {0}", DEMO_USER);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM TaxInvoices WHERE CreatedBy = {0}", DEMO_USER);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM YarnDeliveryDetails WHERE CreatedBy = {0}", DEMO_USER);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM YarnDeliveries WHERE CreatedBy = {0}", DEMO_USER);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM YarnReturnDetails WHERE CreatedBy = {0}", DEMO_USER);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM YarnReturns WHERE CreatedBy = {0}", DEMO_USER);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM SizingJobCardBeams WHERE CreatedBy = {0}", DEMO_USER);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM SizingJobCards WHERE CreatedBy = {0}", DEMO_USER);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM WarpingJobCardBeams WHERE CreatedBy = {0}", DEMO_USER);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM WarpingJobCards WHERE CreatedBy = {0}", DEMO_USER);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM BabyConeDetails WHERE CreatedBy = {0}", DEMO_USER);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM BabyCones WHERE CreatedBy = {0}", DEMO_USER);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM YarnReceiptDetails WHERE CreatedBy = {0}", DEMO_USER);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM YarnReceipts WHERE CreatedBy = {0}", DEMO_USER);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM YarnStocks WHERE CreatedBy = {0}", DEMO_USER);
+            
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM Users WHERE CreatedBy = {0}", DEMO_USER);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM Beams WHERE CreatedBy = {0}", DEMO_USER);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM Vehicles WHERE CreatedBy = {0}", DEMO_USER);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM Parties WHERE CreatedBy = {0}", DEMO_USER);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM LoomTypes WHERE CreatedBy = {0}", DEMO_USER);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM YarnCounts WHERE CreatedBy = {0}", DEMO_USER);
+            await _context.Database.ExecuteSqlRawAsync("DELETE FROM Companies WHERE CreatedBy = {0}", DEMO_USER);
+
+            _logger.LogInformation("Demo data cleared successfully");
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error clearing demo data");
+            return false;
+        }
+    }
+
+    #region Master Data Loaders
+
+    private async Task LoadCompanyMasterAsync(SampleDataLoadResult result)
+    {
+        if (await _context.Companies.AnyAsync()) return;
+
+        var company = new Company
+        {
+            CompanyCode = "STM001",
+            CompanyName = "Sudhan Textile Mills Pvt Ltd",
+            AddressLine1 = "Industrial Estate, Omalur Road",
+            AddressLine2 = "Near Textile Park",
+            City = "Salem",
+            State = "Tamil Nadu",
+            StateCode = "33",
+            Pincode = "638001",
+            Country = "India",
+            Phone = "+91-427-1234567",
+            Mobile = "+91-9876543210",
+            Email = "info@sudhantextiles.com",
+            GSTIN = "33ABCDE1234F1Z5",
+            PAN = "ABCDE1234F",
+            BankName = "State Bank of India",
+            BankAccountNo = "123456789012",
+            BankIFSC = "SBIN0001234",
+            BankBranch = "Salem Main Branch",
+            IsActive = true,
+            CreatedBy = DEMO_USER
+        };
+
+        _context.Companies.Add(company);
+        await _context.SaveChangesAsync();
+        result.LoadedCounts["Companies"] = 1;
+        _logger.LogInformation("Loaded company master");
+    }
+
+    private async Task LoadYarnCountMasterAsync(SampleDataLoadResult result)
+    {
+        if (await _context.YarnCounts.AnyAsync()) return;
+
+        var yarnCounts = new List<YarnCount>
+        {
+            new() { CountCode = "20s", CountDescription = "20s Cotton", Ply = 1, CreatedBy = DEMO_USER },
+            new() { CountCode = "30s", CountDescription = "30s Cotton", Ply = 1, CreatedBy = DEMO_USER },
+            new() { CountCode = "40s", CountDescription = "40s Cotton", Ply = 1, CreatedBy = DEMO_USER },
+            new() { CountCode = "60s", CountDescription = "60s PC (Polyester Cotton)", Ply = 1, CreatedBy = DEMO_USER },
+            new() { CountCode = "2/40s", CountDescription = "2/40s Cotton", Ply = 2, CreatedBy = DEMO_USER },
+        };
+
+        _context.YarnCounts.AddRange(yarnCounts);
+        await _context.SaveChangesAsync();
+        result.LoadedCounts["YarnCounts"] = yarnCounts.Count;
+        _logger.LogInformation("Loaded {Count} yarn counts", yarnCounts.Count);
+    }
+
+    private async Task LoadLoomTypeMasterAsync(SampleDataLoadResult result)
+    {
+        if (await _context.LoomTypes.AnyAsync()) return;
+
+        var loomTypes = new List<LoomType>
+        {
+            new() { LoomTypeCode = "PL", LoomTypeName = "Power Loom", Width = 44, CreatedBy = DEMO_USER },
+            new() { LoomTypeCode = "AL", LoomTypeName = "Auto Loom", Width = 60, CreatedBy = DEMO_USER },
+            new() { LoomTypeCode = "RL", LoomTypeName = "Rapier Loom", Width = 72, CreatedBy = DEMO_USER },
+            new() { LoomTypeCode = "AJ", LoomTypeName = "Air Jet Loom", Width = 90, CreatedBy = DEMO_USER },
+        };
+
+        _context.LoomTypes.AddRange(loomTypes);
+        await _context.SaveChangesAsync();
+        result.LoadedCounts["LoomTypes"] = loomTypes.Count;
+        _logger.LogInformation("Loaded {Count} loom types", loomTypes.Count);
+    }
+
+    private async Task LoadPartiesMasterAsync(SampleDataLoadResult result)
+    {
+        if (await _context.Parties.AnyAsync()) return;
+
+        var parties = new List<Party>
+        {
+            // Vendors
+            new()
+            {
+                PartyCode = "VEN001",
+                PartyName = "Krishna Yarn Mills",
+                PartyType = "Vendor",
+                AddressLine1 = "Textile Complex, Phase 2",
+                City = "Coimbatore",
+                State = "Tamil Nadu",
+                StateCode = "33",
+                Pincode = "641001",
+                Mobile = "+91-9876543201",
+                Email = "sales@krishnayarn.com",
+                GSTIN = "33BCDEF2345G1Z6",
+                CreditDays = 30,
+                CreditLimit = 500000,
+                CreatedBy = DEMO_USER
+            },
+            new()
+            {
+                PartyCode = "VEN002",
+                PartyName = "Rajesh Textiles Pvt Ltd",
+                PartyType = "Vendor",
+                AddressLine1 = "Industrial Area, Sector 5",
+                City = "Tirupur",
+                State = "Tamil Nadu",
+                StateCode = "33",
+                Pincode = "641604",
+                Mobile = "+91-9876543202",
+                Email = "info@rajeshtextiles.com",
+                GSTIN = "33CDEFG3456H1Z7",
+                CreditDays = 45,
+                CreditLimit = 750000,
+                CreatedBy = DEMO_USER
+            },
+            
+            // Customers
+            new()
+            {
+                PartyCode = "CUS001",
+                PartyName = "Sri Lakshmi Weavers",
+                PartyType = "Customer",
+                AddressLine1 = "Weaving Complex, Unit 12",
+                City = "Erode",
+                State = "Tamil Nadu",
+                StateCode = "33",
+                Pincode = "638001",
+                Mobile = "+91-9876543203",
+                Email = "purchase@srilakshmiweavers.com",
+                GSTIN = "33DEFGH4567I1Z8",
+                CreditDays = 60,
+                CreditLimit = 1000000,
+                CreatedBy = DEMO_USER
+            },
+            new()
+            {
+                PartyCode = "CUS002",
+                PartyName = "KPR Looms",
+                PartyType = "Customer",
+                AddressLine1 = "KPR Industrial Complex",
+                City = "Coimbatore",
+                State = "Tamil Nadu",
+                StateCode = "33",
+                Pincode = "641020",
+                Mobile = "+91-9876543204",
+                Email = "orders@kprlooms.com",
+                GSTIN = "33EFGHI5678J1Z9",
+                CreditDays = 45,
+                CreditLimit = 1500000,
+                CreatedBy = DEMO_USER
+            },
+            
+            // Jobwork
+            new()
+            {
+                PartyCode = "JOB001",
+                PartyName = "Venkatesh Sizing Unit",
+                PartyType = "Jobwork",
+                AddressLine1 = "Sizing Complex, SIDCO",
+                City = "Salem",
+                State = "Tamil Nadu",
+                StateCode = "33",
+                Pincode = "636004",
+                Mobile = "+91-9876543205",
+                Email = "venkateshsizing@gmail.com",
+                GSTIN = "33FGHIJ6789K1A1",
+                CreditDays = 15,
+                CreditLimit = 250000,
+                CreatedBy = DEMO_USER
+            },
+            
+            // Transport
+            new()
+            {
+                PartyCode = "TRA001",
+                PartyName = "SRL Logistics",
+                PartyType = "Transport",
+                AddressLine1 = "Transport Nagar",
+                City = "Salem",
+                State = "Tamil Nadu",
+                StateCode = "33",
+                Pincode = "636005",
+                Mobile = "+91-9876543206",
+                Email = "srllogistics@gmail.com",
+                CreditDays = 7,
+                CreditLimit = 50000,
+                CreatedBy = DEMO_USER
+            },
+        };
+
+        _context.Parties.AddRange(parties);
+        await _context.SaveChangesAsync();
+        result.LoadedCounts["Parties"] = parties.Count;
+        _logger.LogInformation("Loaded {Count} parties", parties.Count);
+    }
+
+    private async Task LoadVehicleMasterAsync(SampleDataLoadResult result)
+    {
+        if (await _context.Vehicles.AnyAsync()) return;
+
+        var vehicles = new List<Vehicle>
+        {
+            new()
+            {
+                VehicleNo = "TN09AB1234",
+                VehicleType = "Truck",
+                OwnerName = "SRL Logistics",
+                DriverName = "Ramesh Kumar",
+                DriverMobile = "+91-9876541001",
+                CreatedBy = DEMO_USER
+            },
+            new()
+            {
+                VehicleNo = "TN34CD5678",
+                VehicleType = "Lorry",
+                OwnerName = "Fast Transport",
+                DriverName = "Suresh Babu",
+                DriverMobile = "+91-9876541002",
+                CreatedBy = DEMO_USER
+            },
+        };
+
+        _context.Vehicles.AddRange(vehicles);
+        await _context.SaveChangesAsync();
+        result.LoadedCounts["Vehicles"] = vehicles.Count;
+        _logger.LogInformation("Loaded {Count} vehicles", vehicles.Count);
+    }
+
+    private async Task LoadBeamMasterAsync(SampleDataLoadResult result)
+    {
+        if (await _context.Beams.AnyAsync()) return;
+
+        var beams = new List<Beam>();
+        for (int i = 1; i <= 15; i++)
+        {
+            beams.Add(new Beam
+            {
+                BeamNo = $"B-{i:D3}",
+                BeamType = i <= 8 ? BeamType.WarpersBeam : (i <= 12 ? BeamType.SizersBeam : BeamType.LoomBeam),
+                Status = i == 13 ? BeamStatus.Maintenance : BeamStatus.Empty,
+                CreatedBy = DEMO_USER
+            });
+        }
+
+        _context.Beams.AddRange(beams);
+        await _context.SaveChangesAsync();
+        result.LoadedCounts["Beams"] = beams.Count;
+        _logger.LogInformation("Loaded {Count} beams", beams.Count);
+    }
+
+    private async Task LoadFinancialYearAsync(SampleDataLoadResult result)
+    {
+        var currentFY = await _context.FinancialYears.FirstOrDefaultAsync(f => f.IsCurrent);
+        if (currentFY == null)
+        {
+            var fy = new FinancialYear
+            {
+                YearCode = "FY2025-26",
+                YearName = "FY 2025-2026",
+                StartDate = new DateTime(2025, 4, 1),
+                EndDate = new DateTime(2026, 3, 31),
+                IsCurrent = true,
+                CreatedBy = DEMO_USER
+            };
+            _context.FinancialYears.Add(fy);
+            await _context.SaveChangesAsync();
+            result.LoadedCounts["FinancialYears"] = 1;
+            _logger.LogInformation("Created financial year");
+        }
+    }
+
+    #endregion
+
+    #region Demo Users
+
+    private async Task LoadDemoUsersAsync(SampleDataLoadResult result)
+    {
+        var demoUsers = new[]
+        {
+            new { Email = "admin@demo.com", Name = "Demo Admin", Role = "SuperAdmin" },
+            new { Email = "manager@demo.com", Name = "Demo Manager", Role = "Manager" },
+            new { Email = "operator1@demo.com", Name = "Demo Operator", Role = "Operator" },
+            new { Email = "viewer@demo.com", Name = "Demo Viewer", Role = "Viewer" }
+        };
+
+        int created = 0;
+        foreach (var demoUser in demoUsers)
+        {
+            var exists = await _context.Users.AnyAsync(u => u.Email == demoUser.Email);
+            if (!exists)
+            {
+                try
+                {
+                    await _authService.RegisterAsync(new RegisterRequest
+                    {
+                        Username = demoUser.Email.Split('@')[0],
+                        Email = demoUser.Email,
+                        Password = "Demo@123",
+                        FullName = demoUser.Name
+                    });
+
+                    // Assign role
+                    var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == demoUser.Email);
+                    if (user != null)
+                    {
+                        var role = await _context.Roles.FirstOrDefaultAsync(r => r.RoleName == demoUser.Role);
+                        if (role != null)
+                        {
+                            user.RoleId = role.Id;
+                            user.CreatedBy = DEMO_USER;
+                            await _context.SaveChangesAsync();
+                        }
+                    }
+                    created++;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning("Could not create demo user {Email}: {Error}", demoUser.Email, ex.Message);
+                }
+            }
+        }
+
+        result.LoadedCounts["DemoUsers"] = created;
+        _logger.LogInformation("Created {Count} demo users", created);
+    }
+
+    #endregion
+
+    #region Transactional Data Loaders
+
+    private async Task LoadYarnReceiptsAsync(SampleDataLoadResult result)
+    {
+        var vendors = await _context.Parties.Where(p => p.PartyType == "Vendor" && p.CreatedBy == DEMO_USER).ToListAsync();
+        var yarnCounts = await _context.YarnCounts.Where(y => y.CreatedBy == DEMO_USER).ToListAsync();
+        var vehicles = await _context.Vehicles.Where(v => v.CreatedBy == DEMO_USER).ToListAsync();
+
+        if (!vendors.Any() || !yarnCounts.Any()) return;
+
+        var receipts = new[]
+        {
+            new
+            {
+                Days = -10,
+                VendorIndex = 0,
+                YarnIndex = 0,
+                LotNo = "LOT-2025-001",
+                Bags = 50,
+                GrossWeight = 2500m,
+                TareWeight = 50m
+            },
+            new
+            {
+                Days = -8,
+                VendorIndex = 1,
+                YarnIndex = 1,
+                LotNo = "LOT-2025-002",
+                Bags = 40,
+                GrossWeight = 2000m,
+                TareWeight = 40m
+            },
+            new
+            {
+                Days = -5,
+                VendorIndex = 0,
+                YarnIndex = 2,
+                LotNo = "LOT-2025-003",
+                Bags = 60,
+                GrossWeight = 3000m,
+                TareWeight = 60m
+            },
+            new
+            {
+                Days = -3,
+                VendorIndex = 1,
+                YarnIndex = 3,
+                LotNo = "LOT-2025-004",
+                Bags = 45,
+                GrossWeight = 2250m,
+                TareWeight = 45m
+            },
+            new
+            {
+                Days = -1,
+                VendorIndex = 0,
+                YarnIndex = 4,
+                LotNo = "LOT-2025-005",
+                Bags = 55,
+                GrossWeight = 2750m,
+                TareWeight = 55m
+            }
+        };
+
+        int count = 0;
+        foreach (var rcpt in receipts)
+        {
+            if (rcpt.VendorIndex >= vendors.Count || rcpt.YarnIndex >= yarnCounts.Count) continue;
+
+            var request = new CreateYarnReceiptRequest
+            {
+                ReceiptDate = DateTime.Now.AddDays(rcpt.Days),
+                PartyId = vendors[rcpt.VendorIndex].Id,
+                VehicleId = vehicles.Any() ? vehicles[0].Id : null,
+                VehicleNo = vehicles.Any() ? vehicles[0].VehicleNo : null,
+                DriverName = vehicles.Any() ? vehicles[0].DriverName : null,
+                Remarks = $"Demo receipt - {rcpt.LotNo}",
+                Details = new List<YarnReceiptDetailRequest>
+                {
+                    new()
+                    {
+                        YarnCountId = yarnCounts[rcpt.YarnIndex].Id,
+                        LotNo = rcpt.LotNo,
+                        NoOfBags = rcpt.Bags,
+                        GrossWeight = rcpt.GrossWeight,
+                        TareWeight = rcpt.TareWeight,
+                        NetWeight = rcpt.GrossWeight - rcpt.TareWeight,
+                        Rate = 150m + (rcpt.YarnIndex * 10),
+                        Amount = (rcpt.GrossWeight - rcpt.TareWeight) * (150m + (rcpt.YarnIndex * 10))
+                    }
+                }
+            };
+
+            await _yarnReceiptService.CreateAsync(request, DEMO_USER);
+            count++;
+        }
+
+        result.LoadedCounts["YarnReceipts"] = count;
+        _logger.LogInformation("Created {Count} yarn receipts", count);
+    }
+
+    private async Task LoadBabyConesAsync(SampleDataLoadResult result)
+    {
+        var receipts = await _context.YarnReceipts
+            .Include(r => r.Details)
+            .Where(r => r.CreatedBy == DEMO_USER)
+            .Take(3)
+            .ToListAsync();
+
+        int count = 0;
+        foreach (var receipt in receipts)
+        {
+            foreach (var detail in receipt.Details)
+            {
+                var request = new CreateBabyConeRequest
+                {
+                    JobDate = receipt.ReceiptDate.AddDays(1),
+                    YarnReceiptDetailId = detail.Id,
+                    InputCones = 100,
+                    InputWeight = detail.NetWeight * 0.8m, // Use 80% of receipt
+                    OutputCones = 98,
+                    OutputWeight = detail.NetWeight * 0.8m * 0.98m, // 2% loss
+                    WastagePercent = 2m,
+                    Remarks = "Demo baby cone winding"
+                };
+
+                await _babyConeService.CreateAsync(request, DEMO_USER);
+                count++;
+            }
+        }
+
+        result.LoadedCounts["BabyCones"] = count;
+        _logger.LogInformation("Created {Count} baby cones", count);
+    }
+
+    private async Task LoadWarpingJobCardsAsync(SampleDataLoadResult result)
+    {
+        var babyCones = await _context.BabyCones
+            .Where(b => b.CreatedBy == DEMO_USER)
+            .Take(2)
+            .ToListAsync();
+
+        var beams = await _context.Beams
+            .Where(b => b.Status == BeamStatus.Empty && b.CreatedBy == DEMO_USER)
+            .Take(4)
+            .ToListAsync();
+
+        if (!babyCones.Any() || beams.Count < 2) return;
+
+        int count = 0;
+        for (int i = 0; i < Math.Min(2, babyCones.Count); i++)
+        {
+            var request = new CreateWarpingJobCardRequest
+            {
+                JobCardDate = babyCones[i].JobDate.AddDays(1),
+                BabyConeId = babyCones[i].Id,
+                SetLength = 5000 + (i * 500),
+                ActualLength = 4950 + (i * 500),
+                Ends = 3200 + (i * 100),
+                RPM = 200,
+                StartTime = DateTime.Now.AddDays(-5 + i).AddHours(8),
+                EndTime = DateTime.Now.AddDays(-5 + i).AddHours(16),
+                Breaks = 5 + i,
+                Remarks = $"Demo warping job {i + 1}",
+                Beams = new List<WarpingJobCardBeamRequest>
+                {
+                    new() { BeamId = beams[i * 2].Id, BeamWeight = 250m },
+                    new() { BeamId = beams[i * 2 + 1].Id, BeamWeight = 245m }
+                }
+            };
+
+            await _warpingService.CreateAsync(request, DEMO_USER);
+            count++;
+        }
+
+        result.LoadedCounts["WarpingJobCards"] = count;
+        _logger.LogInformation("Created {Count} warping job cards", count);
+    }
+
+    private async Task LoadSizingJobCardsAsync(SampleDataLoadResult result)
+    {
+        var warpingCards = await _context.WarpingJobCards
+            .Include(w => w.Beams)
+            .Where(w => w.CreatedBy == DEMO_USER)
+            .Take(2)
+            .ToListAsync();
+
+        var parties = await _context.Parties
+            .Where(p => p.PartyType == "Customer" && p.CreatedBy == DEMO_USER)
+            .FirstOrDefaultAsync();
+
+        if (!warpingCards.Any() || parties == null) return;
+
+        int count = 0;
+        foreach (var warpingCard in warpingCards)
+        {
+            if (!warpingCard.Beams.Any()) continue;
+
+            var request = new CreateSizingJobCardRequest
+            {
+                JobCardDate = warpingCard.JobCardDate.AddDays(1),
+                PartyId = parties.Id,
+                WarpingJobCardId = warpingCard.Id,
+                SetLength = warpingCard.SetLength,
+                ActualLength = warpingCard.ActualLength,
+                PickupPercent = 12.5m,
+                ElongationPercent = 2.5m,
+                Status = count == 0 ? "Draft" : "Authorized",
+                Remarks = $"Demo sizing job {count + 1}",
+                Beams = warpingCard.Beams.Select(b => new SizingJobCardBeamRequest
+                {
+                    BeamId = b.BeamId,
+                    BeamWeight = b.BeamWeight
+                }).ToList()
+            };
+
+            await _sizingService.CreateAsync(request, DEMO_USER);
+            count++;
+        }
+
+        result.LoadedCounts["SizingJobCards"] = count;
+        _logger.LogInformation("Created {Count} sizing job cards", count);
+    }
+
+    private async Task LoadYarnReturnsAsync(SampleDataLoadResult result)
+    {
+        var jobworkParty = await _context.Parties
+            .FirstOrDefaultAsync(p => p.PartyType == "Jobwork" && p.CreatedBy == DEMO_USER);
+
+        var yarnCounts = await _context.YarnCounts
+            .Where(y => y.CreatedBy == DEMO_USER)
+            .FirstOrDefaultAsync();
+
+        if (jobworkParty == null || yarnCounts == null) return;
+
+        var request = new CreateYarnReturnRequest
+        {
+            ReturnDate = DateTime.Now.AddDays(-2),
+            PartyId = jobworkParty.Id,
+            IsForSale = false,
+            Remarks = "Demo jobwork return - Not for sale",
+            Details = new List<YarnReturnDetailRequest>
+            {
+                new()
+                {
+                    YarnCountId = yarnCounts.Id,
+                    LotNo = "RET-LOT-001",
+                    NoOfBags = 10,
+                    GrossWeight = 500m,
+                    TareWeight = 10m,
+                    NetWeight = 490m,
+                    Rate = 140m,
+                    Amount = 490m * 140m
+                }
+            }
+        };
+
+        await _yarnReturnService.CreateAsync(request, DEMO_USER);
+        result.LoadedCounts["YarnReturns"] = 1;
+        _logger.LogInformation("Created yarn return");
+    }
+
+    private async Task LoadYarnDeliveriesAsync(SampleDataLoadResult result)
+    {
+        var customers = await _context.Parties
+            .Where(p => p.PartyType == "Customer" && p.CreatedBy == DEMO_USER)
+            .ToListAsync();
+
+        var yarnCounts = await _context.YarnCounts
+            .Where(y => y.CreatedBy == DEMO_USER)
+            .Take(2)
+            .ToListAsync();
+
+        if (!customers.Any() || !yarnCounts.Any()) return;
+
+        int count = 0;
+        for (int i = 0; i < Math.Min(2, customers.Count); i++)
+        {
+            var request = new CreateYarnDeliveryRequest
+            {
+                DeliveryDate = DateTime.Now.AddDays(-1 - i),
+                PartyId = customers[i].Id,
+                IsApproved = true,
+                Remarks = $"Demo delivery to {customers[i].PartyName}",
+                Details = new List<YarnDeliveryDetailRequest>
+                {
+                    new()
+                    {
+                        YarnCountId = yarnCounts[Math.Min(i, yarnCounts.Count - 1)].Id,
+                        LotNo = $"DEL-LOT-00{i + 1}",
+                        NoOfBags = 20 + (i * 5),
+                        GrossWeight = 1000m + (i * 200),
+                        TareWeight = 20m + (i * 5),
+                        NetWeight = 980m + (i * 195),
+                        Rate = 180m + (i * 10),
+                        Amount = (980m + (i * 195)) * (180m + (i * 10))
+                    }
+                }
+            };
+
+            await _yarnDeliveryService.CreateAsync(request, DEMO_USER);
+            count++;
+        }
+
+        result.LoadedCounts["YarnDeliveries"] = count;
+        _logger.LogInformation("Created {Count} yarn deliveries", count);
+    }
+
+    private async Task LoadInvoicesAsync(SampleDataLoadResult result)
+    {
+        var sizingCards = await _context.SizingJobCards
+            .Include(s => s.Party)
+            .Where(s => s.CreatedBy == DEMO_USER && s.Status == "Authorized")
+            .ToListAsync();
+
+        if (!sizingCards.Any()) return;
+
+        int count = 0;
+        foreach (var sizing in sizingCards)
+        {
+            var request = new CreateTaxInvoiceRequest
+            {
+                InvoiceDate = sizing.JobCardDate.AddDays(2),
+                PartyId = sizing.PartyId,
+                SizingJobCardId = sizing.Id,
+                PaymentStatus = count == 0 ? "Paid" : "Pending",
+                DueDate = sizing.JobCardDate.AddDays(32),
+                Remarks = "Demo GST invoice",
+                Details = new List<TaxInvoiceDetailRequest>
+                {
+                    new()
+                    {
+                        Description = $"Sizing services for {sizing.SetLength}m",
+                        HSNCode = "998821",
+                        Quantity = sizing.SetLength,
+                        UOM = "Meters",
+                        Rate = 2.5m,
+                        Amount = sizing.SetLength * 2.5m,
+                        SGSTPercent = 9m,
+                        CGSTPercent = 9m,
+                        IGSTPercent = 0m
+                    }
+                }
+            };
+
+            await _invoiceService.CreateAsync(request, DEMO_USER);
+            count++;
+        }
+
+        result.LoadedCounts["TaxInvoices"] = count;
+        _logger.LogInformation("Created {Count} tax invoices", count);
+    }
+
+    #endregion
+}

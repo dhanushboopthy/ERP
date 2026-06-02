@@ -1,0 +1,1036 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* ============================================
+       SUDHAN TEXTILE ERP - ENTERPRISE DESIGN SYSTEM
+       STRICT COLOR PALETTE: White + Purple + Grey ONLY
+       NO Blue, Green, Orange, or Colorful elements
+       ============================================ */
+    
+    /* === BLUE (PRIMARY BRAND) === */
+    --blue-primary: #1D4ED8;             /* Primary Blue - Main brand */
+    --blue-secondary: #3B82F6;           /* Medium Blue - Light variant */
+    --blue-hover: #1E40AF;               /* Darker blue for hover */
+    --blue-rgb: 29, 78, 216;
+    
+    /* === WHITE & OFF-WHITE === */
+    --white: #FFFFFF;
+    --app-bg: #F8FAFC;                   /* Off-white app background */
+    --card-bg: #FFFFFF;                  /* Pure white cards */
+    
+    /* === GREY SCALE (TEXT) === */
+    --text-primary: #111827;             /* Primary text - darkest */
+    --text-secondary: #6B7280;           /* Secondary text */
+    --text-muted: #9CA3AF;               /* Muted/helper text */
+    --text-inverse: #FFFFFF;             /* White text on dark */
+    
+    /* === GREY SCALE (BORDERS & BACKGROUNDS) === */
+    --border-light: #E5E7EB;             /* Light borders */
+    --border-active: #1D4ED8;            /* Active state = primary blue */
+    --bg-grey-light: #F3F4F6;            /* Light grey backgrounds */
+    --bg-hover: rgba(29, 78, 216, 0.04); /* Subtle blue hover */
+    
+    /* === SHADOWS (PROFESSIONAL) === */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-card: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.06);
+    
+    /* === SIDEBAR (SLATE DARK BACKGROUND) === */
+    --sidebar-bg: #0F172A;
+    --sidebar-text: rgba(255, 255, 255, 0.7);
+    --sidebar-text-hover: rgba(255, 255, 255, 1);
+    --sidebar-active-bg: rgba(29, 78, 216, 0.3);
+    --sidebar-active-indicator: #3B82F6;
+    
+    /* === Shadcn Compatibility === */
+    --background: 210 40% 98%;           /* #F8FAFC */
+    --foreground: 222 47% 11%;           /* #111827 */
+    --card: 0 0% 100%;                   /* #FFFFFF */
+    --card-foreground: 17 24 39;
+    --popover: 0 0% 100%;
+    --popover-foreground: 17 24 39;
+    --primary: 224 76% 48%;              /* #1D4ED8 Blue */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 11% 71%;            /* Grey */
+    --secondary-foreground: 17 24 39;
+    --muted: 243 244 246;                /* #F3F4F6 */
+    --muted-foreground: 75 85 99;        /* #4B5563 */
+    --accent: 229 5% 91%;
+    --accent-foreground: 17 24 39;
+    --destructive: 0 72% 51%;            /* Red for destructive */
+    --destructive-foreground: 0 0% 100%;
+    --border: 229 5% 91%;                /* #E5E7EB */
+    --input: 229 5% 91%;
+    --ring: 224 76% 48%;                 /* Primary blue focus ring */
+    --radius: 0.875rem;                  /* 14px */
+  }
+
+  .dark {
+    /* Dark mode disabled - Enterprise ERP uses light theme only */
+    --background: 249 250 251;
+    --foreground: 17 24 39;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-[#F6F7FB] text-[#111827] antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+  button, a, input, select, textarea {
+    @apply touch-manipulation;
+  }
+}
+
+/* ============================================
+   ENTERPRISE SCROLLBAR
+   ============================================ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
+
+/* Hide scrollbar on mobile for cleaner look */
+@media (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}
+
+/* ============================================
+   TYPOGRAPHY SYSTEM
+   ============================================ */
+.font-numeric {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+.text-page-title {
+  @apply text-2xl font-bold text-gray-900 tracking-tight;
+}
+
+.text-section-header {
+  @apply text-lg font-semibold text-gray-800;
+}
+
+.text-field-label {
+  @apply text-sm font-medium text-gray-700;
+}
+
+.text-helper {
+  @apply text-xs text-gray-500;
+}
+
+/* ============================================
+   MOBILE-FIRST LAYOUT UTILITIES
+   ============================================ */
+.page-container {
+  @apply px-4 py-4 md:px-6 md:py-6 max-w-full;
+  animation: fadeIn 0.2s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.page-header {
+  @apply flex flex-col gap-3 mb-6;
+}
+
+@media (min-width: 640px) {
+  .page-header {
+    @apply flex-row items-center justify-between;
+  }
+}
+
+.page-actions {
+  @apply flex flex-wrap items-center gap-2;
+}
+
+/* Mobile: Stack buttons vertically */
+@media (max-width: 480px) {
+  .page-actions {
+    @apply w-full;
+  }
+  .page-actions > * {
+    @apply flex-1;
+  }
+}
+
+/* ============================================
+   ENTERPRISE CARD SYSTEM
+   ============================================ */
+.erp-card {
+  @apply bg-white rounded-xl shadow-sm border border-gray-200/60 overflow-hidden;
+  @apply transition-all duration-200 ease-out;
+}
+
+.erp-card:hover {
+  @apply shadow-md border-gray-200;
+}
+
+.erp-card-header {
+  @apply px-4 py-3 border-b border-gray-100 bg-gray-50/50;
+}
+
+@media (min-width: 768px) {
+  .erp-card-header {
+    @apply px-6 py-4;
+  }
+}
+
+.erp-card-content {
+  @apply px-4 py-4;
+}
+
+@media (min-width: 768px) {
+  .erp-card-content {
+    @apply px-6 py-5;
+  }
+}
+
+/* ============================================
+   STATUS BADGE SYSTEM (Enterprise Standard)
+   ============================================ */
+.status-badge {
+  @apply inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold;
+}
+
+/* Draft - Gray */
+.status-draft {
+  @apply bg-gray-100 text-gray-700;
+}
+
+/* Prepared - Blue */
+.status-prepared {
+  @apply bg-blue-50 text-blue-700;
+}
+
+/* Checked - Yellow/Amber */
+.status-checked {
+  @apply bg-amber-50 text-amber-700;
+}
+
+/* Approved / GM Approved - Green */
+.status-approved, .status-gm-approved {
+  @apply bg-emerald-50 text-emerald-700;
+}
+
+/* Authorized - Purple */
+.status-authorized {
+  @apply bg-violet-50 text-violet-700;
+}
+
+/* Locked - Dark Gray */
+.status-locked {
+  @apply bg-gray-700 text-white;
+}
+
+/* Cancelled/Rejected - Red */
+.status-cancelled, .status-rejected {
+  @apply bg-red-50 text-red-700;
+}
+
+/* Pending - Orange */
+.status-pending {
+  @apply bg-orange-50 text-orange-700;
+}
+
+/* ============================================
+   FORM SYSTEM (Mobile-First)
+   ============================================ */
+.form-section {
+  @apply space-y-4 p-4 rounded-xl bg-white border-0 shadow-sm;
+}
+
+@media (min-width: 768px) {
+  .form-section {
+    @apply p-6;
+  }
+}
+
+.form-section-title {
+  @apply text-sm font-semibold text-blue-600 uppercase tracking-wider mb-4 pb-2 border-b border-gray-100;
+}
+
+.form-group {
+  @apply space-y-1.5;
+}
+
+.form-label {
+  @apply text-sm font-medium text-gray-700 flex items-center gap-1;
+}
+
+.form-label-required::after {
+  content: '*';
+  @apply text-blue-600 ml-0.5;
+}
+
+.form-input {
+  @apply w-full px-3 py-2.5 text-base border border-gray-200 rounded-lg bg-white;
+  @apply focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none;
+  @apply transition-all duration-150;
+  @apply disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed;
+}
+
+/* Larger touch targets on mobile */
+@media (max-width: 768px) {
+  .form-input {
+    @apply py-3 text-base;
+    min-height: 48px;
+  }
+}
+
+.form-input-unit {
+  @apply absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[#9CA3AF] pointer-events-none;
+}
+
+.form-error {
+  @apply text-xs text-[#7A1020] mt-1 flex items-center gap-1;
+}
+
+.form-hint {
+  @apply text-xs text-[#6B7280] mt-1;
+}
+
+/* ============================================
+   TABLE SYSTEM (Responsive)
+   ============================================ */
+.data-table-container {
+  @apply overflow-x-auto -mx-4 px-4;
+}
+
+@media (min-width: 768px) {
+  .data-table-container {
+    @apply mx-0 px-0 rounded-lg border border-gray-200;
+  }
+}
+
+.data-table {
+  @apply w-full text-sm min-w-[600px];
+}
+
+@media (min-width: 768px) {
+  .data-table {
+    @apply min-w-0;
+  }
+}
+
+.data-table thead {
+  @apply bg-gray-50;
+}
+
+.data-table th {
+  @apply px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider;
+  @apply border-b border-gray-200 whitespace-nowrap;
+}
+
+.data-table td {
+  @apply px-4 py-3 border-b border-gray-100;
+}
+
+.data-table tbody tr {
+  @apply transition-colors;
+}
+
+.data-table tbody tr:hover {
+  @apply bg-gray-50/70;
+}
+
+.data-table tbody tr:last-child td {
+  @apply border-b-0;
+}
+
+/* Hide table on mobile, show cards */
+@media (max-width: 768px) {
+  .table-desktop {
+    @apply hidden;
+  }
+  .cards-mobile {
+    @apply block;
+  }
+}
+
+@media (min-width: 769px) {
+  .table-desktop {
+    @apply block;
+  }
+  .cards-mobile {
+    @apply hidden;
+  }
+}
+
+/* ============================================
+   MOBILE CARD LIST (Table Alternative)
+   ============================================ */
+.mobile-card-list {
+  @apply space-y-3;
+}
+
+.mobile-card-item {
+  @apply bg-white rounded-xl border border-gray-200 p-4 shadow-sm;
+  @apply active:bg-gray-50 transition-colors;
+}
+
+.mobile-card-header {
+  @apply flex items-start justify-between mb-3;
+}
+
+.mobile-card-title {
+  @apply font-semibold text-gray-900;
+}
+
+.mobile-card-subtitle {
+  @apply text-sm text-gray-500 mt-0.5;
+}
+
+.mobile-card-grid {
+  @apply grid grid-cols-2 gap-3 text-sm;
+}
+
+.mobile-card-field {
+  @apply flex flex-col;
+}
+
+.mobile-card-field-label {
+  @apply text-xs text-gray-500 mb-0.5;
+}
+
+.mobile-card-field-value {
+  @apply font-medium text-gray-900;
+}
+
+.mobile-card-actions {
+  @apply flex gap-2 mt-4 pt-3 border-t border-gray-100;
+}
+
+/* ============================================
+   METRIC / KPI CARDS
+   ============================================ */
+.metric-card {
+  @apply erp-card p-4;
+}
+
+@media (min-width: 768px) {
+  .metric-card {
+    @apply p-5;
+  }
+}
+
+.metric-icon {
+  @apply flex h-10 w-10 items-center justify-center rounded-xl;
+}
+
+.metric-value {
+  @apply text-2xl font-bold font-numeric text-gray-900;
+}
+
+@media (min-width: 768px) {
+  .metric-value {
+    @apply text-3xl;
+  }
+}
+
+.metric-label {
+  @apply text-sm text-gray-500;
+}
+
+.metric-change {
+  @apply text-xs flex items-center gap-1 font-medium;
+}
+
+.metric-change.positive {
+  /* Use brand purple for positive change to stay within strict palette */
+  @apply text-[#29021A];
+}
+
+.metric-change.negative {
+  /* Use muted grey for negative change to avoid red */
+  @apply text-[#4B5563];
+}
+
+/* ============================================
+   GLOBAL UTILITY CLASSES - BRAND CONSISTENCY
+   ============================================ */
+
+/* Primary Button - Brand Theme */
+.btn-brand-primary {
+  @apply bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 shadow-sm hover:shadow-md;
+}
+
+.btn-brand-primary:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+/* Secondary Button */
+.btn-brand-secondary {
+  @apply bg-blue-500 hover:bg-blue-600 text-white font-medium px-4 py-2 rounded-lg transition-all duration-200;
+}
+
+/* Outline Button */
+.btn-brand-outline {
+  @apply border border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 font-medium px-4 py-2 rounded-lg transition-all duration-200;
+}
+
+/* Brand Card */
+.card-brand {
+  @apply bg-white border-0 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200;
+}
+
+/* Brand Badge - neutral/blue only */
+.badge-brand {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-50 text-blue-600;
+}
+
+.badge-success,
+.badge-warning,
+.badge-danger,
+.badge-info {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600;
+}
+
+/* Brand Input */
+.input-brand {
+  @apply w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 placeholder:text-gray-400;
+}
+
+.input-brand:disabled {
+  @apply bg-gray-50 cursor-not-allowed;
+}
+
+/* Brand Select */
+.select-brand {
+  @apply w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all duration-200 bg-white placeholder:text-gray-400;
+}
+
+/* Brand Table */
+.table-brand {
+  @apply w-full border-collapse;
+}
+
+.table-brand thead {
+  @apply bg-gray-50/80 border-b border-gray-100;
+}
+
+.table-brand th {
+  @apply px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider;
+}
+
+.table-brand td {
+  @apply px-4 py-3 text-sm text-gray-700;
+}
+
+.table-brand tbody tr {
+  @apply border-b border-gray-100 hover:bg-gray-50/50 transition-colors;
+}
+
+.table-brand tbody tr:last-child {
+  @apply border-b-0;
+}
+
+/* Zebra Striping */
+.table-brand-zebra tbody tr:nth-child(even) {
+  @apply bg-[#F9FAFB];
+}
+
+/* Mobile Responsive Table */
+@media (max-width: 768px) {
+  .table-mobile-cards {
+    @apply block;
+  }
+  
+  .table-mobile-cards thead {
+    @apply hidden;
+  }
+  
+  .table-mobile-cards tbody,
+  .table-mobile-cards tr,
+  .table-mobile-cards td {
+    @apply block;
+  }
+  
+  .table-mobile-cards tr {
+    @apply mb-4 p-4 bg-white rounded-lg shadow-sm border border-[#E5E7EB];
+  }
+  
+  .table-mobile-cards td {
+    @apply px-0 py-2 text-right;
+  }
+  
+  .table-mobile-cards td::before {
+    content: attr(data-label);
+    @apply float-left font-semibold text-[#4B5563];
+  }
+}
+
+/* Status Indicators */
+.status-dot {
+  @apply inline-block w-2 h-2 rounded-full mr-2;
+}
+
+.status-dot-success {
+  @apply status-dot bg-[#1E3A8A];
+}
+
+.status-dot-warning {
+  @apply status-dot bg-[#9CA3AF];
+}
+
+.status-dot-danger {
+  @apply status-dot bg-[#4B5563];
+}
+
+.status-dot-info {
+  @apply status-dot bg-[#E5E7EB];
+}
+
+/* Loading Skeleton */
+.skeleton {
+  @apply animate-pulse bg-gray-200 rounded;
+}
+
+.skeleton-text {
+  @apply skeleton h-4 mb-2;
+}
+
+.skeleton-title {
+  @apply skeleton h-6 mb-3;
+}
+
+.skeleton-button {
+  @apply skeleton h-10 w-24;
+}
+
+.skeleton-card {
+  @apply skeleton h-32 rounded-xl;
+}
+
+/* ============================================
+   PROFESSIONAL SIDEBAR NAVIGATION
+   Theme: Dark Navy Sidebar with Blue Accents
+   Hardware-accelerated CSS transitions (NO flickering)
+   ============================================ */
+
+/* Sidebar Scroll Area */
+.sidebar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Navigation Group */
+.nav-group {
+  @apply mb-0.5;
+}
+
+/* Parent Navigation Item */
+.nav-parent-item {
+  @apply w-full flex items-center justify-between gap-2 px-3 py-2.5 rounded-lg;
+  @apply text-sm font-medium text-white/70;
+  @apply cursor-pointer select-none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  will-change: background-color;
+}
+
+.nav-parent-item:hover {
+  @apply bg-white/10 text-white;
+}
+
+.nav-parent-item.nav-parent-active {
+  @apply bg-white/15 text-white;
+}
+
+.nav-parent-item.nav-collapsed {
+  @apply justify-center px-2;
+}
+
+/* Navigation Item Content */
+.nav-item-content {
+  @apply flex items-center gap-2.5 min-w-0;
+}
+
+/* Navigation Icon Wrapper */
+.nav-icon-wrapper {
+  @apply flex items-center justify-center w-8 h-8 rounded-md;
+  @apply text-white/60;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.nav-icon-wrapper.nav-icon-active {
+  @apply text-blue-400 bg-blue-500/20;
+}
+
+.nav-collapsed .nav-icon-wrapper {
+  @apply w-10 h-10 bg-white/10;
+}
+
+/* Navigation Icon */
+.nav-icon {
+  @apply w-[18px] h-[18px];
+}
+
+/* Navigation Label */
+.nav-label {
+  @apply truncate text-[13px] leading-5;
+}
+
+/* Navigation Item Actions (badges, chevron) */
+.nav-item-actions {
+  @apply flex items-center gap-1.5 shrink-0;
+}
+
+/* Navigation Chevron */
+.nav-chevron {
+  @apply h-4 w-4 text-white/40;
+  transition: transform 0.2s ease, color 0.15s ease;
+  will-change: transform;
+}
+
+.nav-chevron.nav-chevron-open {
+  transform: rotate(180deg);
+}
+
+.nav-parent-item:hover .nav-chevron {
+  @apply text-white/70;
+}
+
+/* Navigation Badges */
+.nav-badge {
+  @apply text-[10px] px-1.5 py-0 h-5 bg-blue-500/20 text-blue-300 border-blue-400/30;
+}
+
+.nav-badge-soon {
+  @apply text-[10px] px-1.5 py-0 h-5 border border-white/20 text-white/40 bg-transparent flex items-center gap-1;
+}
+
+.nav-badge-small {
+  @apply text-[9px] px-1 py-0 h-4 bg-white/10 text-white/50;
+  border-color: rgba(255,255,255,0.1);
+}
+
+/* Children Wrapper - CSS Accordion */
+.nav-children-wrapper {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.2s ease-out;
+  will-change: grid-template-rows;
+}
+
+.nav-children-wrapper.nav-children-open {
+  grid-template-rows: 1fr;
+}
+
+.nav-children {
+  overflow: hidden;
+  @apply ml-3 mt-0.5 pl-2.5 border-l border-white/10;
+}
+
+/* Single Navigation Item */
+.nav-single-item {
+  @apply flex items-center gap-2.5 px-3 py-2.5 rounded-lg relative;
+  @apply text-sm font-medium text-white/70;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  will-change: background-color;
+}
+
+.nav-single-item:hover {
+  @apply bg-white/10 text-white;
+}
+
+.nav-single-item.nav-active {
+  @apply bg-white/15 text-white;
+}
+
+.nav-single-item.nav-disabled {
+  @apply opacity-50 cursor-not-allowed text-white/30;
+}
+
+.nav-single-item.nav-collapsed {
+  @apply justify-center px-2;
+}
+
+/* Active Indicator */
+.nav-active-indicator {
+  @apply absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 bg-white rounded-r;
+}
+
+/* Child Navigation Item */
+.nav-child-item {
+  @apply flex items-center gap-2.5 px-3 py-2 rounded-md relative;
+  @apply text-[13px] text-white/60;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  will-change: background-color;
+}
+
+.nav-child-item:hover {
+  @apply bg-white/10 text-white;
+}
+
+.nav-child-item.nav-child-active {
+  @apply bg-white/15 text-white font-medium;
+}
+
+.nav-child-item.nav-disabled {
+  @apply opacity-50 cursor-not-allowed text-white/30;
+}
+
+/* Child Active Indicator */
+.nav-child-indicator {
+  @apply absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 bg-white rounded-r;
+}
+
+/* Child Icon */
+.nav-child-icon {
+  @apply w-4 h-4 text-white/40;
+}
+
+.nav-child-active .nav-child-icon {
+  @apply text-white;
+}
+
+/* Child Label */
+.nav-child-label {
+  @apply truncate flex-1;
+}
+
+/* Child Actions */
+.nav-child-actions {
+  @apply flex items-center gap-1 shrink-0;
+}
+
+/* Lock & Clock Icons */
+.nav-lock-icon {
+  @apply h-3.5 w-3.5 text-white/20;
+}
+
+.nav-lock-icon-small {
+  @apply h-3 w-3 text-white/20;
+}
+
+.nav-clock-icon {
+  @apply h-3 w-3 text-white/20;
+}
+
+/* Tooltip Styling */
+.nav-tooltip {
+  @apply bg-gray-900 text-white border-gray-700 shadow-xl max-w-xs z-[100];
+}
+
+/* Legacy nav-item compatibility */
+.nav-item {
+  @apply flex items-center gap-3 px-4 py-3 rounded-xl text-white/70;
+  @apply hover:bg-white/10 hover:text-white;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  will-change: background-color;
+  position: relative;
+}
+
+.nav-item::before {
+  content: '';
+  @apply absolute left-0 top-1/2 -translate-y-1/2 w-1 h-0 bg-white rounded-r-full;
+  transition: height 0.15s ease;
+  will-change: height;
+}
+
+.nav-item:hover::before {
+  @apply h-8;
+}
+
+@media (min-width: 768px) {
+  .nav-item {
+    @apply py-2.5;
+  }
+}
+
+.nav-item.active {
+  @apply bg-white/15 text-white font-medium;
+}
+
+.nav-item.active::before {
+  @apply h-10;
+}
+
+.nav-item-icon {
+  @apply w-5 h-5 flex-shrink-0;
+}
+
+/* ============================================
+   STICKY ACTION BAR (Mobile)
+   ============================================ */
+.sticky-action-bar {
+  @apply fixed bottom-0 left-0 right-0 z-50;
+  @apply bg-white border-t border-gray-200 px-4 py-3;
+  @apply flex gap-3 shadow-lg;
+  padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 768px) {
+  .sticky-action-bar {
+    @apply hidden;
+  }
+}
+
+/* ============================================
+   FILTER PANEL (Mobile Slide-Up)
+   ============================================ */
+.filter-panel-mobile {
+  @apply fixed inset-x-0 bottom-0 z-50 bg-white rounded-t-2xl shadow-xl;
+  @apply transform transition-transform duration-300;
+  max-height: 85vh;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.filter-panel-mobile.hidden {
+  @apply translate-y-full;
+}
+
+.filter-panel-handle {
+  @apply w-12 h-1.5 bg-gray-300 rounded-full mx-auto mt-3 mb-4;
+}
+
+/* ============================================
+   LOADING STATES
+   ============================================ */
+.skeleton {
+  @apply bg-gray-200 rounded animate-pulse;
+}
+
+.skeleton-text {
+  @apply h-4 skeleton;
+}
+
+.skeleton-title {
+  @apply h-6 skeleton w-1/3;
+}
+
+.skeleton-card {
+  @apply h-32 skeleton rounded-xl;
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+  
+  body {
+    font-size: 11pt;
+    line-height: 1.4;
+    background: white !important;
+  }
+  
+  .print-document {
+    page-break-inside: avoid;
+  }
+  
+  .page-break {
+    page-break-after: always;
+  }
+  
+  .erp-card {
+    box-shadow: none !important;
+    border: 1px solid #e2e8f0 !important;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION PREFERENCE
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY FOCUS STATES
+   ============================================ */
+:focus-visible {
+  @apply outline-2 outline-offset-2 outline-primary;
+}
+
+/* Skip to main content link */
+.skip-link {
+  @apply sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4;
+  @apply bg-primary text-white px-4 py-2 rounded-lg z-[100];
+}
+
+/* ============================================
+   DOCUMENT / INVOICE STYLES
+   ============================================ */
+.document-header {
+  @apply border-b-2 border-gray-800 pb-4 mb-4;
+}
+
+.document-table {
+  @apply w-full border-collapse;
+}
+
+.document-table th,
+.document-table td {
+  @apply border border-gray-400 px-3 py-2 text-left;
+}
+
+.document-table th {
+  @apply bg-gray-100 font-semibold;
+}
+
+.signature-box {
+  @apply border-t-2 border-gray-400 pt-2 mt-8 min-w-[150px] text-center;
+}
