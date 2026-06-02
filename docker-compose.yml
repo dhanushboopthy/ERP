@@ -31,20 +31,17 @@ services:
     build:
       context: ./backend/SudhanTextileERP.API
       dockerfile: Dockerfile
-    image: erp-backend:latest
+    image: dhanushboopathy/erp-backend:latest
     container_name: erp-backend
     restart: unless-stopped
     depends_on:
       mysql:
         condition: service_healthy
     environment:
-      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
       ASPNETCORE_URLS: http://+:8080
       # ── Required secrets (filled from .env file) ───────────────────────────
-      DB_CONNECTION_STRING: >-
-        Server=mysql;Port=3306;Database=SudhanTextileERP;
-        Uid=${MYSQL_USER};Pwd=${MYSQL_PASSWORD};
-        SslMode=None;AllowUserVariables=True;ConnectionTimeout=60;
+      DB_CONNECTION_STRING: "Server=mysql;Port=3306;Database=SudhanTextileERP;Uid=${MYSQL_USER};Pwd=${MYSQL_PASSWORD};SslMode=None;AllowUserVariables=True;AllowPublicKeyRetrieval=True;ConnectionTimeout=60;"
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS}
       # ── Override production HTTPS requirement (nginx handles TLS) ──────────
@@ -74,7 +71,7 @@ services:
       args:
         # Baked into the JS bundle at build time — must be the public-facing URL
         NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-    image: erp-frontend:latest
+    image: dhanushboopathy/erp-frontend:latest
     container_name: erp-frontend
     restart: unless-stopped
     depends_on:
@@ -82,13 +79,6 @@ services:
         condition: service_healthy
     networks:
       - erp-network
-    healthcheck:
-      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/ || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
-
   # ── Nginx reverse proxy ───────────────────────────────────────────────────────
   nginx:
     image: nginx:1.27-alpine
@@ -96,7 +86,7 @@ services:
     restart: unless-stopped
     depends_on:
       frontend:
-        condition: service_healthy
+        condition: service_started
       backend:
         condition: service_healthy
     ports:
